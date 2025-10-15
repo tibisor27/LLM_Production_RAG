@@ -72,6 +72,4 @@ def chunks_and_metadata(pages_list:list[dict])->list[dict]:
             chunk_dict["chunk_sentence_count"] = len(list(nlp(joined_sentence_chunk).sents))
             chunk_and_metadata.append(chunk_dict)
 
-            chunk_and_metadata.append(chunk_dict)
-
     return chunk_and_metadata
