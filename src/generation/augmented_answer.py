@@ -1,80 +1,67 @@
+import boto3
+import json
 from config import config
-from llama_cpp import Llama
-from time import perf_counter as timer
-from huggingface_hub import hf_hub_download
-from transformers import AutoTokenizer
+from bedrock import invoke_bedrock_model 
 
-def _load_gen_model() -> tuple:
-    # Download the GGUF model file from Hugging Face
-    model_path = hf_hub_download(
-        repo_id=config.GEN_MODEL_REPO_ID,
-        filename=config.GEN_MODEL_FILE,
-    )
-    
-    # The tokenizer is still best loaded from the original, non-quantized model repository
-    tokenizer = AutoTokenizer.from_pretrained(config.TOKENIZER_ID)
-
-    print(f"[GENERATION] Loading model {config.GEN_MODEL_FILE}...")
-    start_time = timer()
-
-    # Instantiate the model from the local GGUF file
-    llm = Llama(
-        model_path=model_path,
-        n_gpu_layers=-1,  # Offload all layers to GPU (Metal)
-        use_mmap=True,    # Use memory mapping for faster loading
-        n_ctx=2048,       # Context window size
-        verbose=False,    # Suppress verbose output
-    )
-    
-    end_time = timer()
-    print(f"[GENERATION] Time to load model: {end_time - start_time:.2f} seconds")
-
-    return llm, tokenizer
-
-
-def build_prompt(query:str, context:list[dict], tokenizer:AutoTokenizer) -> str:
+def build_rag_prompt(query: str, context: list[dict]) -> str:
     context_str = "\n\n---\n\n".join([item["content"] for item in context])
 
-    base_prompt = f"""Use the following context to answer the user's question.
+    # Mistral models expect a specific instruction format with [INST] tags.
+    prompt = f"""<s>[INST] Use the following context to answer the user's question.
 If the answer is not found in the context, say "I could not find the answer in the provided documents."
 
 Context:
 {context_str}
 
 User's Question:
-{query}
-"""
-
-    dialogue_template = [
-        {"role": "user", "content": base_prompt}
-    ]
-
-    prompt = tokenizer.apply_chat_template(
-        conversation=dialogue_template,
-        tokenize=False,
-        add_generation_prompt=True
-    )
-    
+{query} [/INST]"""
     return prompt
 
+def rewrite_query(query:str) -> str:
+    rewrite_template = f""" 
+    You are a query rewriting expert.
 
-def augment_answer_with_context(query:str, context:list[dict]) -> str:
-    llm, tokenizer = _load_gen_model()
+    All user queries are related to human nutrition and health.
+    Your task is to rewrite the user query to be more specific and detailed.
 
-    prompt = build_prompt(query, context, tokenizer)
+    Analyze the user's query and rewrite it to improve RAG document retrieval chances:
+        - Make it more specific or more general as appropriate
+        - Add synonyms or related terms
+        - Rephrase to target likely document content
+        - Do not include in the rewritten query the fact that the campaign is called Curse of Strahd or is related to the campaign, just use this information as context to improve the query
+
+    User query: {query}
+
+    Rewritten user query:
+    """
     
-    print("\n--- Generating Answer ---")
+    print("\n--- Rewriting query via Bedrock ---")
+    response_data = invoke_bedrock_model(prompt=rewrite_template, temperature=0.5)
     
-    # Use the Llama object to generate the response
-    response = llm(
-        prompt,
-        max_tokens=256,
-        echo=False,  # Do not repeat the prompt in the output
-        stop=["<|eot_id|>", "<|end_of_text|>"], # Tokens to stop generation at
-    )
+    rewritten_query = response_data["answer"]
+    
+    print(f"Original query: {query}")
+    print(f"Rewritten query: {rewritten_query}")
+    print(f"(Token Usage: Input={response_data['input_tokens']}, Output={response_data['output_tokens']})")
+    
+    return rewritten_query
 
-    answer = response["choices"][0]["text"].strip()
 
+
+
+def augment_answer_with_context(query: str, context: list[dict]) -> str:
+    # Build the complete RAG prompt
+    rewritten_query = rewrite_query(query)
+ 
+    prompt = build_rag_prompt(rewritten_query, context)
+
+    print("\n--- Generating Answer via Amazon Bedrock (Converse API) ---")
+    
+    # Use the wrapper function for a clean API call
+    response_data = invoke_bedrock_model(prompt=prompt, temperature=0.1)
+    
+    answer = response_data["answer"]
+    
+    print(f"\nFinal Answer (Token Usage: Input={response_data['input_tokens']}, Output={response_data['output_tokens']}):")
     print(answer)
-
     return answer

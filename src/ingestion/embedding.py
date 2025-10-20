@@ -20,12 +20,16 @@ def _load_model():
 
     return model
 
-embedding_model = _load_model()
 
 def create_embeddings(list_chunks:list[dict]):
+    embedding_model = _load_model()
     chunks = [item["sentence_chunk"] for item in list_chunks]
     embeddings_qwen = embedding_model.encode(chunks,
     batch_size = config.BATCH_SIZE,
     show_progress_bar = True
     )
     return embeddings_qwen
+
+def embed_query(query:str):
+    embedding_model = _load_model()
+    return embedding_model.encode(query)

@@ -1,41 +1,58 @@
 from config import config
 from ingestion import load_pdf, chunks_and_metadata, create_embeddings, create_metadata, inject_data_to_db
 import pandas as pd
+from retrieval import retrieve_relevant_sources
+from generation import augment_answer_with_context
 
 def main():
     print(f"Reading PDF by pages...\n")
     pages_and_texts = load_pdf(config.PDF_PATH)
 
-    print("Chunking (10 sentences per chunk, 2 overlap)...\n")
-    chunks = chunks_and_metadata(pages_and_texts)
-    print(chunks[0].keys())
-    print(f"Length of chunks: {len(chunks)}")
-    chunks_df = pd.DataFrame(chunks)
-    print(chunks_df.describe(percentiles=[.05, .10, .25]))
-    print(chunks[0]["sentence_chunk"])
+    # print("Chunking (10 sentences per chunk, 2 overlap)...\n")
+    # chunks = chunks_and_metadata(pages_and_texts)
+    # print(chunks[0].keys())
+    # print(f"Length of chunks: {len(chunks)}")
+    # chunks_df = pd.DataFrame(chunks)
+    # print(chunks_df.describe(percentiles=[.05, .10, .25]))
+    # print(chunks[0]["sentence_chunk"])
 
-    print(f'Type of chunks: {type(chunks[0]["sentence_chunk"])}')
+    # print(f'Type of chunks: {type(chunks[0]["sentence_chunk"])}')
 
 
     print("Creating embeddings...\n")
-    embeddings_qwen = create_embeddings(chunks)
-    print("EMBEDDINGS CREATED")
-    print(embeddings_qwen)
-    print(f"Type of embeddings: {type(embeddings_qwen)}")
-    print(f"Shape of embeddings: {embeddings_qwen.shape}")
-    print(f"First embedding: {embeddings_qwen[0]}")
-    print(f"First embedding shape: {embeddings_qwen[0].shape}")
-    print(f"First embedding type: {embeddings_qwen[0].dtype}")
+    # embeddings_qwen = create_embeddings(chunks)
+    # print("EMBEDDINGS CREATED")
+    # print(embeddings_qwen)
+    # print(f"Type of embeddings: {type(embeddings_qwen)}")
+    # print(f"Shape of embeddings: {embeddings_qwen.shape}")
+    # print(f"First embedding: {embeddings_qwen[0]}")
+    # print(f"First embedding shape: {embeddings_qwen[0].shape}")
+    # print(f"First embedding type: {embeddings_qwen[0].dtype}")
 
-    print(f"\nCreating metadata...\n")
-    metadata,content_list = create_metadata(chunks)
-    print(f"Metadata: {len(metadata)}")
-    print(f"Content list: {len(content_list)}")
+    # print(f"\nCreating metadata...\n")
+    # metadata,content_list = create_metadata(chunks)
+    # print(f"Metadata: {len(metadata)}")
+    # print(f"Content list: {len(content_list)}")
 
-    print(f"\nInjecting data to Supabase...\n")
-    inject_data_to_db(content_list, embeddings_qwen, metadata)
+    # print(f"\nInjecting data to Supabase...\n")
+    # inject_data_to_db(content_list, embeddings_qwen, metadata)
 
+    print(f"\nRetrieving relevant sources...\n")
+    query = "how does saliva help with digestion?"
+    context_chunks = retrieve_relevant_sources(query)
+    
+    if context_chunks:
+        print("\n--- Context Chunks Retrieved ---")
+        for i, chunk in enumerate(context_chunks, start=1):
+            print(f"Chunk {i}:")
+            print(chunk.get('content', 'No content found'))
+            print("-" * 30)
+        
+        print("\n--- Attempting to Generate Answer ---")
+        augment_answer_with_context(query, context_chunks)
+    else:
+        print("\nNo context was retrieved. Cannot generate an answer.")
 
 
 if __name__ == "__main__":
-   main()
+    main()

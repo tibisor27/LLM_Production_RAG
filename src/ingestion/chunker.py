@@ -9,12 +9,11 @@ nlp.add_pipe("sentencizer")
 SENTS_PER_CHUNK = config.SENTS_PER_CHUNK
 SENT_OVERLAP = config.SENT_OVERLAP
 MAX_TOKENS = config.MAX_TOKENS
-MIN_TOKENS = config.MIN_TOKENS
 
 def split_sentences(text:str) -> list:
     return [str(sent) for sent in nlp(text).sents]
 
-def chunk_page_by_sentences(sentences:list, sents_per_chunk: int = SENTS_PER_CHUNK, overlap: int = SENT_OVERLAP, max_tokens: int = MAX_TOKENS, min_tokens: int = MIN_TOKENS):
+def chunk_page_by_sentences(sentences:list, sents_per_chunk: int = SENTS_PER_CHUNK, overlap: int = SENT_OVERLAP, max_tokens: int = MAX_TOKENS):
     if not sentences:
         return []
     chunks,current_chunk,current_tokens = [],[],0
