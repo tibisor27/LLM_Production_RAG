@@ -1,5 +1,5 @@
 import torch
-from config import config
+from ..config import config
 from sentence_transformers import SentenceTransformer
 from time import perf_counter as timer
 

@@ -1,5 +1,5 @@
-from ingestion import embed_query
-from config import config
+from ..ingestion import embed_query
+from ..config import config
 from supabase import create_client, Client
 import textwrap
 

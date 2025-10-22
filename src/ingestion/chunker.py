@@ -1,5 +1,5 @@
 import nltk
-from config import config
+from ..config import config
 from spacy.lang.en import English
 import re
 

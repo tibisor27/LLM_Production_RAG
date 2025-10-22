@@ -1,5 +1,5 @@
 import boto3
-from config import config
+from .config import config
 
 _bedrock_client = None
 

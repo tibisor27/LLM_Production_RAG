@@ -1,7 +1,7 @@
 import re
 import fitz
 from tqdm.auto import tqdm
-from config import config
+from ..config import config
 
 
 def text_formatter(text: str) -> str:

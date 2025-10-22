@@ -1,7 +1,7 @@
 import boto3
 import json
-from config import config
-from bedrock import invoke_bedrock_model 
+from ..config import config
+from ..bedrock import invoke_bedrock_model 
 
 def build_rag_prompt(query: str, context: list[dict]) -> str:
     context_str = "\n\n---\n\n".join([item["content"] for item in context])
@@ -49,7 +49,7 @@ def rewrite_query(query:str) -> str:
 
 
 
-def augment_answer_with_context(query: str, context: list[dict]) -> str:
+def augment_answer_with_context(query: str, context: list[dict]) -> dict:
     # Build the complete RAG prompt
     rewritten_query = rewrite_query(query)
  
@@ -64,4 +64,4 @@ def augment_answer_with_context(query: str, context: list[dict]) -> str:
     
     print(f"\nFinal Answer (Token Usage: Input={response_data['input_tokens']}, Output={response_data['output_tokens']}):")
     print(answer)
-    return answer
+    return response_data # Return the full dictionary

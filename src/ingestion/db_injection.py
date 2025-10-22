@@ -1,4 +1,4 @@
-from config import config
+from ..config import config
 from supabase import create_client, Client
 from tqdm.auto import tqdm 
 

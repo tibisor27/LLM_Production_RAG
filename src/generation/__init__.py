@@ -1,1 +1,1 @@
-from .augmented_answer import augment_answer_with_context
+from .augmented_answer import augment_answer_with_context, rewrite_query
